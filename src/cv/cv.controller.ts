@@ -1,3 +1,5 @@
+
+
 import {
   Controller,
   Get,
@@ -34,7 +36,9 @@ export class CvController {
     return this.cvService.create(createCvDto);
   }
 
+
   @Put(':id')
+  @HttpCode(HttpStatus.OK)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateCvDto: UpdateCvDto,
@@ -48,3 +52,4 @@ export class CvController {
     return this.cvService.remove(id);
   }
 }
+
