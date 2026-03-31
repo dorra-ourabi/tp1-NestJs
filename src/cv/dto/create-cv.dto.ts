@@ -1,4 +1,5 @@
-import { IsString, IsNumber, IsOptional, IsArray } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsArray, IsInt } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateCvDto {
   @IsString()
@@ -7,7 +8,8 @@ export class CreateCvDto {
   @IsString()
   firstname: string;
 
-  @IsNumber()
+  @IsInt()
+  @Type(() => Number)
   age: number;
 
   @IsString()
@@ -20,10 +22,13 @@ export class CreateCvDto {
   @IsString()
   path?: string;
 
-  @IsNumber()
+  @IsInt()
+  @Type(() => Number)
   userId: number;
 
   @IsOptional()
   @IsArray()
+  @IsInt({ each: true })   
+  @Type(() => Number)
   skillIds?: number[];
 }
