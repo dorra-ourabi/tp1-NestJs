@@ -11,7 +11,7 @@ import { SkillModule } from './skill/skill.module';
       host: 'localhost',
       port: 5432,
       username: 'postgres',
-      password: 'ton_password',
+      password: '1234',
       database: 'cv_manager',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
