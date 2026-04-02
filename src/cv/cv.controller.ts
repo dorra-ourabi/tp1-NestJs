@@ -17,6 +17,10 @@ import { CvService } from './cv.service';
 import { CreateCvDto } from './dto/create-cv.dto';
 import { UpdateCvDto } from './dto/update-cv.dto';
 
+interface AuthenticatedRequest extends Request {
+  userId: number;
+}
+
 @Controller('cvs')
 export class CvController {
   constructor(private readonly cvService: CvService) {}
@@ -34,7 +38,7 @@ export class CvController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(@Body() createCvDto: CreateCvDto, @Req() req: Request) {
-    const userId = (req as any).userId;
+    const userId = (req as AuthenticatedRequest).userId;
     return this.cvService.create({ ...createCvDto, userId });
   }
 
@@ -45,7 +49,7 @@ export class CvController {
     @Body() updateCvDto: UpdateCvDto,
     @Req() req: Request,
   ) {
-    const userId = (req as any).userId;
+    const userId = (req as AuthenticatedRequest).userId;
     const cv = await this.cvService.findOne(id);
     if (cv.user.id !== userId) {
       throw new ForbiddenException(
@@ -58,7 +62,7 @@ export class CvController {
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   async remove(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
-    const userId = (req as any).userId;
+    const userId = (req as AuthenticatedRequest).userId;
     const cv = await this.cvService.findOne(id);
     if (cv.user.id !== userId) {
       throw new ForbiddenException(

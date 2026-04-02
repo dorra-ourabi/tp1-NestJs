@@ -1,9 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsArray,
-  IsInt,
-} from 'class-validator';
+import { IsString, IsOptional, IsArray, IsInt } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateCvDto {

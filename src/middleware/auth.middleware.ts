@@ -1,8 +1,16 @@
-import { Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  NestMiddleware,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import * as jwt from 'jsonwebtoken';
 
 interface DecodedToken {
+  userId: number;
+}
+
+interface AuthenticatedRequest extends Request {
   userId: number;
 }
 
@@ -20,7 +28,7 @@ export class AuthMiddleware implements NestMiddleware {
       if (!decoded || !decoded.userId) {
         throw new UnauthorizedException('Token invalide ou userId manquant');
       }
-      (req as any).userId = decoded.userId;
+      (req as AuthenticatedRequest).userId = decoded.userId;
       next();
     } catch {
       throw new UnauthorizedException('Token invalide');
