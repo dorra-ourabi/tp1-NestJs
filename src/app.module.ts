@@ -3,22 +3,34 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CvModule } from './cv/cv.module';
 import { UserModule } from './user/user.module';
 import { SkillModule } from './skill/skill.module';
-
+import { ConfigModule, ConfigService } from '@nestjs/config';
 @Module({
-  imports: [
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: '1234',
-      database: 'cv_manager',
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true,
+  imports: [UserModule,
+    
+    ConfigModule.forRoot({
+      isGlobal: true,
     }),
+    
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'mysql',
+        host: config.get<string>('DB_HOST'),
+        port: config.get<number>('DB_PORT') || 3306,
+        username: config.get<string>('DB_USERNAME'),
+        password: config.get<string>('DB_PASSWORD'),
+        database: config.get<string>('DB_NAME'),
+        autoLoadEntities: true, 
+        synchronize: config.get<string>('NODE_ENV') !== 'production',
+        connectorPackage: 'mysql2',
+        logging: true, 
+      }),
+    }),
+    
     CvModule,
-    UserModule,
-    SkillModule,
+    
+    SkillModule
   ],
 })
+
 export class AppModule {}

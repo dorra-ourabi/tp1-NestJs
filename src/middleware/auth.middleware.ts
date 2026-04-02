@@ -24,7 +24,8 @@ export class AuthMiddleware implements NestMiddleware {
     }
 
     try {
-      const decoded = jwt.decode(authHeader) as DecodedToken;
+      const JWT_SECRET='votre_secret_super_securise_123456';
+      const decoded = jwt.verify(authHeader, JWT_SECRET) as DecodedToken;
       if (!decoded || !decoded.userId) {
         throw new UnauthorizedException('Token invalide ou userId manquant');
       }

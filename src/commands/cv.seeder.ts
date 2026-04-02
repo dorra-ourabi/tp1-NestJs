@@ -6,14 +6,14 @@ import { UserService } from '../user/user.service';
 import { User } from '../user/entities/user.entity';
 import { Skill } from '../skill/entities/skill.entity';
 import {
-  randFullName,
+  randLastName,
   randFirstName,
   randNumber,
   randUserName,
   randEmail,
   randPassword,
-  randWord,
   randJobTitle,
+  randSkill,
 } from '@ngneat/falso';
 
 async function bootstrap() {
@@ -38,7 +38,7 @@ async function bootstrap() {
   const skills: Skill[] = [];
   for (let i = 0; i < 8; i++) {
     const skill = await skillService.create({
-      designation: randWord(),
+      designation: randSkill(),
     });
     skills.push(skill);
   }
@@ -52,7 +52,7 @@ async function bootstrap() {
     );
 
     await cvService.create({
-      name: randFullName(),
+      name: randLastName(),
       firstname: randFirstName(),
       age: randNumber({ min: 20, max: 60 }),
       cin: randNumber({ min: 10000000, max: 99999999 }).toString(),
