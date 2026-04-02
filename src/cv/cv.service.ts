@@ -1,4 +1,3 @@
-
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
@@ -22,13 +21,13 @@ export class CvService {
   ) {}
 
   async findAll(): Promise<Cv[]> {
-    return this.cvRepository.find(); 
+    return this.cvRepository.find();
   }
 
   async findOne(id: number): Promise<Cv> {
     const cv = await this.cvRepository.findOne({
       where: { id },
-    }); 
+    });
 
     if (!cv) {
       throw new NotFoundException(`CV #${id} introuvable`);
@@ -63,19 +62,9 @@ export class CvService {
 
   async update(id: number, updateCvDto: UpdateCvDto): Promise<Cv> {
     const cv = await this.findOne(id);
-    const { skillIds, userId, ...cvData } = updateCvDto;
+    const { skillIds, ...cvData } = updateCvDto;
 
-    if (userId) {
-      const user = await this.userRepository.findOne({
-        where: { id: userId },
-      });
-      if (!user) {
-        throw new NotFoundException(`User #${userId} introuvable`);
-      }
-      cv.user = user;
-    }
-
-    if (skillIds !== undefined) { 
+    if (skillIds !== undefined) {
       cv.skills = await this.skillRepository.findBy({ id: In(skillIds) });
     }
 

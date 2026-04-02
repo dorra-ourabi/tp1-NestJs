@@ -1,5 +1,3 @@
-
-
 import {
   Controller,
   Get,
@@ -11,7 +9,10 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
+  Req,
+  ForbiddenException,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { CvService } from './cv.service';
 import { CreateCvDto } from './dto/create-cv.dto';
 import { UpdateCvDto } from './dto/update-cv.dto';
@@ -32,24 +33,38 @@ export class CvController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() createCvDto: CreateCvDto) {
-    return this.cvService.create(createCvDto);
+  create(@Body() createCvDto: CreateCvDto, @Req() req: Request) {
+    const userId = (req as any).userId;
+    return this.cvService.create({ ...createCvDto, userId });
   }
-
 
   @Put(':id')
   @HttpCode(HttpStatus.OK)
-  update(
+  async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateCvDto: UpdateCvDto,
+    @Req() req: Request,
   ) {
+    const userId = (req as any).userId;
+    const cv = await this.cvService.findOne(id);
+    if (cv.user.id !== userId) {
+      throw new ForbiddenException(
+        'Vous ne pouvez modifier que vos propres CVs',
+      );
+    }
     return this.cvService.update(id, updateCvDto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  remove(@Param('id', ParseIntPipe) id: number) {
+  async remove(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+    const userId = (req as any).userId;
+    const cv = await this.cvService.findOne(id);
+    if (cv.user.id !== userId) {
+      throw new ForbiddenException(
+        'Vous ne pouvez supprimer que vos propres CVs',
+      );
+    }
     return this.cvService.remove(id);
   }
 }
-
