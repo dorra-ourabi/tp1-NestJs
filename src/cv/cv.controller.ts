@@ -11,7 +11,10 @@ import {
   HttpStatus,
   Req,
   ForbiddenException,
+  Patch,
+  UseGuards
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import type { Request } from 'express';
 import { CvService } from './cv.service';
 import { CreateCvDto } from './dto/create-cv.dto';
@@ -37,32 +40,37 @@ export class CvController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() createCvDto: CreateCvDto, @Req() req: Request) {
-    const userId = (req as AuthenticatedRequest).userId;
-    return this.cvService.create({ ...createCvDto, userId });
+  @UseGuards(AuthGuard('jwt'))
+  create(@Body() createCvDto: CreateCvDto, @Req() req: any) {
+    console.log('--- TEST RÉCEPTION ---');
+    console.log('User dans la requête :', req.user);
+
+    // 1. On extrait l'ID depuis req.user (rempli par le JwtStrategy)
+    const userId = req.user.userId; 
+
+    // 2. On appelle le service avec DEUX arguments distincts
+    // Ne pas faire { ...createCvDto, userId } ici !
+    return this.cvService.create(createCvDto, userId);
   }
 
   @Put(':id')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard('jwt'))
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateCvDto: UpdateCvDto,
-    @Req() req: Request,
+    @Req() req: any,
   ) {
-    const userId = (req as AuthenticatedRequest).userId;
-    const cv = await this.cvService.findOne(id);
-    if (cv.user.id !== userId) {
-      throw new ForbiddenException(
-        'Vous ne pouvez modifier que vos propres CVs',
-      );
-    }
-    return this.cvService.update(id, updateCvDto);
+    const userId = req.user.userId;
+
+    return await this.cvService.update(id, updateCvDto, userId);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  async remove(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
-    const userId = (req as AuthenticatedRequest).userId;
+  @UseGuards(AuthGuard('jwt'))
+  async remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    const userId = req.user.userId;
     const cv = await this.cvService.findOne(id);
     if (cv.user.id !== userId) {
       throw new ForbiddenException(
@@ -71,4 +79,5 @@ export class CvController {
     }
     return this.cvService.remove(id);
   }
+
 }

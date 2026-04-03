@@ -5,7 +5,7 @@ import { Skill } from '../skill/entities/skill.entity';
 import { User } from '../user/entities/user.entity';
 import { CvService } from './cv.service';
 import { CvController } from './cv.controller';
-import { AuthMiddleware } from '../middleware/auth.middleware';
+// import { AuthMiddleware } from '../middleware/auth.middleware';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Cv, Skill, User])],
@@ -13,12 +13,12 @@ import { AuthMiddleware } from '../middleware/auth.middleware';
   providers: [CvService],
   exports: [CvService],
 })
-export class CvModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(AuthMiddleware).forRoutes(
-      { path: 'cvs', method: RequestMethod.POST },   
-      { path: 'cvs/:id', method: RequestMethod.PUT }, 
-      { path: 'cvs/:id', method: RequestMethod.DELETE }  
-    );
-  }
-}
+export class CvModule {} //implements NestModule {
+  //configure(consumer: MiddlewareConsumer) {
+  //  consumer.apply(AuthMiddleware).forRoutes(
+  //   { path: 'cvs', method: RequestMethod.POST },   
+  //   { path: 'cvs/:id', method: RequestMethod.PUT }, 
+  //   { path: 'cvs/:id', method: RequestMethod.DELETE }  
+  // );
+  //}
+//}

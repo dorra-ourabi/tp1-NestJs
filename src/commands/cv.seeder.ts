@@ -60,7 +60,7 @@ async function bootstrap() {
       path: `uploads/cv_${i}.pdf`,
       userId: randomUser.id,
       skillIds: randomSkills.map((s) => s.id),
-    });
+    }, 1);
   }
 
   await app.close();

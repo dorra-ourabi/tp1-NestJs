@@ -4,6 +4,7 @@ import { CvModule } from './cv/cv.module';
 import { UserModule } from './user/user.module';
 import { SkillModule } from './skill/skill.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AuthModule } from './auth/auth.module';
 @Module({
   imports: [UserModule,
     
@@ -29,7 +30,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     
     CvModule,
     
-    SkillModule
+    SkillModule,
+    
+    AuthModule
   ],
 })
 

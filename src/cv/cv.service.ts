@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Cv } from './entities/cv.entity';
@@ -36,41 +36,34 @@ export class CvService {
     return cv;
   }
 
-  async create(createCvDto: CreateCvDto): Promise<Cv> {
-    const { skillIds, userId, ...cvData } = createCvDto;
+  // cvs.service.ts
 
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-    });
-    if (!user) {
-      throw new NotFoundException(`User #${userId} introuvable`);
+  async create(createCvDto: CreateCvDto, userId: number) {
+      // 1. On prépare l'objet CV en fusionnant les données du formulaire (DTO)
+      // et l'objet utilisateur (créé à partir de l'ID extrait du Token)
+      const newCv = this.cvRepository.create({
+        ...createCvDto,
+        user: { id: userId } as any // On dit à TypeORM : "L'auteur est l'user avec cet ID"
+      });
+
+      // 2. On sauvegarde dans MySQL
+      return await this.cvRepository.save(newCv);
     }
 
-    let skills: Skill[] = [];
-    if (skillIds && skillIds.length > 0) {
-      skills = await this.skillRepository.findBy({ id: In(skillIds) });
+    
+
+  // Dans cvs.service.ts
+  async update(id: number, updateCvDto: UpdateCvDto, userId: number) { // Ajoute le 3ème argument
+    const cv = await this.cvRepository.findOne({ where: { id }, relations: ['user'] });
+  
+    if (!cv) throw new NotFoundException(`Le CV #${id} n'existe pas`);
+
+    // Vérification de sécurité : est-ce que ce CV appartient à l'user connecté ?
+    if (cv.user.id !== Number(userId)) {
+      throw new ForbiddenException("Vous n'avez pas le droit de modifier ce CV");
     }
 
-    const cv = this.cvRepository.create({
-      ...cvData,
-      user,
-      skills,
-    });
-
-    return this.cvRepository.save(cv);
-  }
-
-  async update(id: number, updateCvDto: UpdateCvDto): Promise<Cv> {
-    const cv = await this.findOne(id);
-    const { skillIds, ...cvData } = updateCvDto;
-
-    if (skillIds !== undefined) {
-      cv.skills = await this.skillRepository.findBy({ id: In(skillIds) });
-    }
-
-    Object.assign(cv, cvData);
-
-    return this.cvRepository.save(cv);
+    return await this.cvRepository.save({ ...cv, ...updateCvDto });
   }
 
   async remove(id: number): Promise<{ message: string }> {
