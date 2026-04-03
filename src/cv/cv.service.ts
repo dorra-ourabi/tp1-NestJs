@@ -24,6 +24,22 @@ export class CvService {
     return this.cvRepository.find();
   }
 
+  async findVisibleForUser(userId: number, role: string): Promise<Cv[]> {
+    if (role === 'admin') {
+      return this.cvRepository.find();
+    }
+
+    return this.cvRepository.find({
+      where: {
+        user: { id: userId },
+      },
+    });
+  }
+
+  async count(): Promise<number> {
+    return this.cvRepository.count();
+  }
+
   async findOne(id: number): Promise<Cv> {
     const cv = await this.cvRepository.findOne({
       where: { id },

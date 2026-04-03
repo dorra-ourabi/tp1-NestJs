@@ -11,7 +11,6 @@ import {
   HttpStatus,
   Req,
   ForbiddenException,
-  Patch,
   UseGuards
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
@@ -19,6 +18,8 @@ import type { Request } from 'express';
 import { CvService } from './cv.service';
 import { CreateCvDto } from './dto/create-cv.dto';
 import { UpdateCvDto } from './dto/update-cv.dto';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 interface AuthenticatedRequest extends Request {
   userId: number;
@@ -29,13 +30,33 @@ export class CvController {
   constructor(private readonly cvService: CvService) {}
 
   @Get()
-  findAll() {
-    return this.cvService.findAll();
+  @UseGuards(AuthGuard('jwt'))
+  findAll(@Req() req: any) {
+    const userId = req.user.userId;
+    const role = req.user.role;
+    return this.cvService.findVisibleForUser(userId, role);
+  }
+
+  @Get('admin/cv-stats')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  async getAdminStats() {
+    const totalCvs = await this.cvService.count();
+    return { total_cvs: totalCvs, message: 'Admin only endpoint' };
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.cvService.findOne(id);
+  @UseGuards(AuthGuard('jwt'))
+  async findOne(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    const cv = await this.cvService.findOne(id);
+    const userId = req.user.userId;
+    const role = req.user.role;
+
+    if (role !== 'admin' && cv.user.id !== userId) {
+      throw new ForbiddenException('Vous ne pouvez voir que vos propres CVs');
+    }
+
+    return cv;
   }
 
   @Post()
@@ -71,8 +92,10 @@ export class CvController {
   @UseGuards(AuthGuard('jwt'))
   async remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     const userId = req.user.userId;
+    const role = req.user.role;
     const cv = await this.cvService.findOne(id);
-    if (cv.user.id !== userId) {
+
+    if (role !== 'admin' && cv.user.id !== userId) {
       throw new ForbiddenException(
         'Vous ne pouvez supprimer que vos propres CVs',
       );
