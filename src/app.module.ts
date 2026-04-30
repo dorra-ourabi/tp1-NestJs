@@ -6,12 +6,13 @@ import { SkillModule } from './skill/skill.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 @Module({
-  imports: [UserModule,
-    
+  imports: [
+    UserModule,
+
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    
+
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -21,19 +22,18 @@ import { AuthModule } from './auth/auth.module';
         username: config.get<string>('DB_USERNAME'),
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME'),
-        autoLoadEntities: true, 
+        autoLoadEntities: true,
         synchronize: config.get<string>('NODE_ENV') !== 'production',
         connectorPackage: 'mysql2',
-        logging: true, 
+        logging: true,
       }),
     }),
-    
+
     CvModule,
-    
+
     SkillModule,
-    
-    AuthModule
+
+    AuthModule,
   ],
 })
-
 export class AppModule {}

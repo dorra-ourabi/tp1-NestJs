@@ -32,8 +32,7 @@ export class SkillService {
   }
 
   async create(createSkillDto: CreateSkillDto): Promise<Skill> {
-    const skill = this.skillRepository.create(createSkillDto);
-    return this.skillRepository.save(skill);
+    return this.skillRepository.save(createSkillDto);
   }
 
   async update(id: number, updateSkillDto: UpdateSkillDto): Promise<Skill> {

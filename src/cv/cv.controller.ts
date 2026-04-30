@@ -11,7 +11,7 @@ import {
   HttpStatus,
   Req,
   ForbiddenException,
-  UseGuards
+  UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request } from 'express';
@@ -24,7 +24,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 interface AuthenticatedRequest extends Request {
   userId: number;
 }
-
+@Roles('admin')
 @Controller('cvs')
 export class CvController {
   constructor(private readonly cvService: CvService) {}
@@ -39,7 +39,6 @@ export class CvController {
 
   @Get('admin/cv-stats')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
   async getAdminStats() {
     const totalCvs = await this.cvService.count();
     return { total_cvs: totalCvs, message: 'Admin only endpoint' };
@@ -67,7 +66,7 @@ export class CvController {
     console.log('User dans la requête :', req.user);
 
     // 1. On extrait l'ID depuis req.user (rempli par le JwtStrategy)
-    const userId = req.user.userId; 
+    const userId = req.user.userId;
 
     // 2. On appelle le service avec DEUX arguments distincts
     // Ne pas faire { ...createCvDto, userId } ici !
@@ -102,5 +101,4 @@ export class CvController {
     }
     return this.cvService.remove(id);
   }
-
 }
