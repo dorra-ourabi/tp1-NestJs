@@ -5,10 +5,12 @@ import { UserModule } from './user/user.module';
 import { SkillModule } from './skill/skill.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
+import { WebhookModule } from './webhook/webhook.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 @Module({
   imports: [
     UserModule,
-
+    EventEmitterModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -34,6 +36,8 @@ import { AuthModule } from './auth/auth.module';
     SkillModule,
 
     AuthModule,
+
+    WebhookModule,
   ],
 })
 export class AppModule {}
