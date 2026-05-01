@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { OnEvent } from '@nestjs/event-emitter';
 import { firstValueFrom } from 'rxjs';
+import { CvEvent } from 'src/cv/events/cv.events';
+import type { CvEventPayload } from 'src/cv/events/cv.events';
 
 @Injectable()
 export class WebhookService {
@@ -12,27 +14,30 @@ export class WebhookService {
 
   constructor(private readonly httpService: HttpService) {}
 
-  @OnEvent('cv.created')
-  async handleCvCreatedEvent(payload: any) {
-    this.logger.log(`Événement cv.created détecté. Envoi du Webhook...`);
+  @OnEvent(CvEvent.CREATED)
+  async handleCvCreated(payload: CvEventPayload) {
+    this.logger.log(
+      `Événement ${payload.type} intercepté pour le CV #${payload.cvId}. Déclenchement du Webhook...`,
+    );
 
-    const dataToSend = {
-      message: 'Un nouveau talent a rejoint CvTech !',
-      cvDetails: {
-        id: payload.id,
-        nom: payload.name,
-        prenom: payload.firstname,
-        job: payload.Job,
+    const webhookData = {
+      event: 'NEW_TALENT_ALERT',
+      message: "Un nouveau CV vient d'être publié sur la plateforme CvTech !",
+      data: {
+        cvId: payload.cvId,
+        proprietaireId: payload.ownerId,
+        ajoutePar: payload.performedBy,
+        timestamp: new Date().toISOString(),
       },
     };
 
     try {
-      await firstValueFrom(this.httpService.post(this.webhookUrl, dataToSend));
-      this.logger.log('Webhook envoyé avec succès !');
+      await firstValueFrom(this.httpService.post(this.webhookUrl, webhookData));
+      this.logger.log('Webhook envoyé avec succès vers le service externe !');
     } catch (error) {
       this.logger.error(
-        "Erreur lors de l'envoi du Webhook",
-        error instanceof Error ? error.message : String(error),
+        "Échec de l'envoi du Webhook",
+        error instanceof Error ? error.stack : String(error),
       );
     }
   }
