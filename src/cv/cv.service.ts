@@ -68,7 +68,7 @@ export class CvService {
   async update(id: number, updateCvDto: UpdateCvDto, userId: number) {
     const cv = await this.cvRepository.findOne({ where: { id }, relations: ['user'] });
     if (!cv) throw new NotFoundException(`Le CV #${id} n'existe pas`);
-    if (cv.user.id !== Number(userId)) {
+    if (!cv.user || cv.user.id !== Number(userId)) {
       throw new ForbiddenException("Vous n'avez pas le droit de modifier ce CV");
     }
 
@@ -92,9 +92,9 @@ export class CvService {
     // ← AJOUTER (avant remove car après le cv n'existe plus)
     this.eventEmitter.emit(CvEvent.DELETED, {
       cvId:        id,
-      ownerId:     cv.user.id,
+      ownerId:     cv.user?.id,
       type:        CvEvent.DELETED,
-      performedBy: cv.user.id,
+      performedBy: cv.user?.id ?? null,
     });
 
     await this.cvRepository.remove(cv);

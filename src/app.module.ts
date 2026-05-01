@@ -7,7 +7,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CvLogModule } from './cv-log/cv-log.module';
-import { WebhookModule } from './webhook/webhook.module';
+
 import { ChatModule } from './chat/chat.module';
 
 @Module({
@@ -17,20 +17,18 @@ import { ChatModule } from './chat/chat.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    ChatModule,
-
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        type: 'mysql',
+        type: 'postgres',
         host: config.get<string>('DB_HOST'),
-        port: config.get<number>('DB_PORT') || 3306,
+        port: config.get<number>('DB_PORT') || 5432,
         username: config.get<string>('DB_USERNAME'),
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME'),
         autoLoadEntities: true,
         synchronize: config.get<string>('NODE_ENV') !== 'production',
-        connectorPackage: 'mysql2',
+        connectorPackage: 'pg',
         logging: true,
       }),
     }),
@@ -41,8 +39,6 @@ import { ChatModule } from './chat/chat.module';
 
     AuthModule,
     CvLogModule,
-
-    WebhookModule,
 
     ChatModule,
   ],

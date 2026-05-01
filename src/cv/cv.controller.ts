@@ -51,7 +51,7 @@ export class CvController {
     const userId = req.user.userId;
     const role = req.user.role;
 
-    if (role !== 'admin' && cv.user.id !== userId) {
+    if (role !== 'admin' && cv?.user?.id !== userId) {
       throw new ForbiddenException('Vous ne pouvez voir que vos propres CVs');
     }
 
@@ -94,7 +94,7 @@ export class CvController {
     const role = req.user.role;
     const cv = await this.cvService.findOne(id);
 
-    if (role !== 'admin' && cv.user.id !== userId) {
+    if (role !== 'admin' && cv?.user?.id !== userId) {
       throw new ForbiddenException(
         'Vous ne pouvez supprimer que vos propres CVs',
       );

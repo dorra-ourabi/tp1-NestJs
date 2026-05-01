@@ -9,20 +9,20 @@ import { CvEvent } from '../cv/events/cv.events';
 @Entity()
 export class CvLog {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column()
-  cvId: number;
+  cvId!: number;
 
   @Column()
-  ownerId: number;
+  ownerId!: number;
 
   @Column({ type: 'enum', enum: CvEvent })
-  type: CvEvent;
+  type!: CvEvent;
 
   @CreateDateColumn()
-  performedAt: Date;
+  performedAt!: Date;
 
   @Column()
-  performedBy: number;
+  performedBy!: number;
 }
