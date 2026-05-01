@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CvLogModule } from './cv-log/cv-log.module';
 import { WebhookModule } from './webhook/webhook.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { WebhookModule } from './webhook/webhook.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ChatModule,
 
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
@@ -41,6 +43,8 @@ import { WebhookModule } from './webhook/webhook.module';
     CvLogModule,
 
     WebhookModule,
+
+    ChatModule,
   ],
 })
 export class AppModule {}
