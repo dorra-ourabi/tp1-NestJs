@@ -8,10 +8,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Cv } from './entities/cv.entity';
 import { CvService } from './cv.service';
 import { CvController } from './cv.controller';
+import { Skill } from '../skill/entities/skill.entity';  
+import { User } from '../user/entities/user.entity';
+
+
 // import { AuthMiddleware } from '../middleware/auth.middleware';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Cv])],
+  imports: [TypeOrmModule.forFeature([Cv , Skill, User])],
   controllers: [CvController],
   providers: [CvService],
   exports: [CvService],
