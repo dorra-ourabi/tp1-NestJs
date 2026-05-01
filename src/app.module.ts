@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CvLogModule } from './cv-log/cv-log.module';
 import { WebhookModule } from './webhook/webhook.module';
+
 @Module({
   imports: [
     UserModule,
