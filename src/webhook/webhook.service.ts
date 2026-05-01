@@ -1,44 +1,68 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { OnEvent } from '@nestjs/event-emitter';
+import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
-import { CvEvent } from 'src/cv/events/cv.events';
-import type { CvEventPayload } from 'src/cv/events/cv.events';
+import { CvEvent } from '../cv/events/cv.events';
+import type { CvEventPayload } from '../cv/events/cv.events';
 
 @Injectable()
 export class WebhookService {
   private readonly logger = new Logger(WebhookService.name);
+  private readonly discordWebhookUrl: string;
 
-  private readonly webhookUrl =
-    'https://webhook.site/ac5587f4-8580-4f30-8102-4264139696c1';
-
-  constructor(private readonly httpService: HttpService) {}
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly configService: ConfigService,
+  ) {
+    const url = this.configService.get<string>('DISCORD_WEBHOOK_URL');
+    if (!url) {
+      throw new Error('DISCORD_WEBHOOK_URL is not defined in configuration');
+    }
+    this.discordWebhookUrl = url;
+  }
 
   @OnEvent(CvEvent.CREATED)
-  async handleCvCreated(payload: CvEventPayload) {
+  async handleCvCreatedForDiscord(payload: CvEventPayload) {
     this.logger.log(
-      `Événement ${payload.type} intercepté pour le CV #${payload.cvId}. Déclenchement du Webhook...`,
+      `CV #${payload.cvId} créé. Envoi de la notification Discord...`,
     );
-
-    const webhookData = {
-      event: 'NEW_TALENT_ALERT',
-      message: "Un nouveau CV vient d'être publié sur la plateforme CvTech !",
-      data: {
-        cvId: payload.cvId,
-        proprietaireId: payload.ownerId,
-        ajoutePar: payload.performedBy,
-        timestamp: new Date().toISOString(),
-      },
+    const discordPayload = {
+      content: ' **Alerte Recrutement : Un nouveau profil est disponible !**',
+      embeds: [
+        {
+          title: 'Nouveau Talent sur CvTech',
+          description: 'Un candidat vient de mettre en ligne son CV.',
+          color: 3447003,
+          fields: [
+            {
+              name: 'ID du CV',
+              value: `\`#${payload.cvId}\``,
+              inline: true,
+            },
+            {
+              name: "Créé par l'utilisateur",
+              value: `\`ID: ${payload.performedBy}\``,
+              inline: true,
+            },
+          ],
+          footer: {
+            text: 'CvTech Notification System',
+          },
+          timestamp: new Date().toISOString(),
+        },
+      ],
     };
 
     try {
-      await firstValueFrom(this.httpService.post(this.webhookUrl, webhookData));
-      this.logger.log('Webhook envoyé avec succès vers le service externe !');
-    } catch (error) {
-      this.logger.error(
-        "Échec de l'envoi du Webhook",
-        error instanceof Error ? error.stack : String(error),
+      await firstValueFrom(
+        this.httpService.post(this.discordWebhookUrl, discordPayload),
       );
+      this.logger.log(' Notification Discord envoyée avec succès !');
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error("Échec de l'envoi vers Discord", errorMessage);
     }
   }
 }
