@@ -4,20 +4,17 @@ import { Cv } from '../../cv/entities/cv.entity';
 @Entity()
 export class User {
   @PrimaryGeneratedColumn()
-  id: number;
+  id?: number;
 
   @Column({ unique: true })
-  username: string;
+  username?: string;
 
   @Column({ unique: true })
-  email: string;
+  email?: string;
 
   @Column()
-  password: string;
-
-  @Column({ default: 'user' })
-  role: string;
+  password?: string;
 
   @OneToMany(() => Cv, (cv) => cv.user)
-  cvs: Cv[];
+  cvs?: Cv[];
 }
