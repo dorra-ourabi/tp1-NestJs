@@ -7,12 +7,16 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CvLogModule } from './cv-log/cv-log.module';
+<<<<<<< HEAD
 import { ChatModule } from './chat/chat.module';
+=======
+import { WebhookModule } from './webhook/webhook.module';
+
+>>>>>>> origin/feature/webhook
 @Module({
   imports: [
     UserModule,
     EventEmitterModule.forRoot(),
-
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -39,7 +43,12 @@ import { ChatModule } from './chat/chat.module';
 
     AuthModule,
     CvLogModule,
+<<<<<<< HEAD
     ChatModule,
+=======
+
+    WebhookModule,
+>>>>>>> origin/feature/webhook
   ],
 })
 export class AppModule {}
