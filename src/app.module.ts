@@ -7,6 +7,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CvLogModule } from './cv-log/cv-log.module';
+import { ChatModule } from './chat/chat.module';
 @Module({
   imports: [
     UserModule,
@@ -38,6 +39,7 @@ import { CvLogModule } from './cv-log/cv-log.module';
 
     AuthModule,
     CvLogModule,
+    ChatModule,
   ],
 })
 export class AppModule {}
