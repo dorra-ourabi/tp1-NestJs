@@ -6,6 +6,7 @@ import {
   ConnectedSocket,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
   WsException,
 } from '@nestjs/websockets';
 import { JwtService } from '@nestjs/jwt';
@@ -14,14 +15,11 @@ import { Repository } from 'typeorm';
 import { Server, Socket } from 'socket.io';
 import { User } from '../user/entities/user.entity';
 import { ChatService } from './chat.service';
-import { UnauthorizedException } from '@nestjs/common';
 
 @WebSocketGateway({
-  cors: {
-    origin: '*',
-  },
+  cors: { origin: '*' },
 })
-export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
 
@@ -32,61 +30,71 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  async handleConnection(client: Socket) {
-    console.log('--- new connection ---');
+  // runs once when the gateway starts — registers auth middleware
+  afterInit(server: Server) {
+    server.use(async (client: Socket, next) => {
+      const token =
+        client.handshake.auth?.token ||
+        (client.handshake.query?.token as string) ||
+        this.extractBearerToken(client.handshake.headers?.authorization);
 
-    // grab token from all 3 possible places
-    const token =
-      client.handshake.auth?.token ||
-      (client.handshake.query?.token as string) ||
-      this.extractBearerToken(client.handshake.headers?.authorization);
-
-    console.log('token found:', token ? 'yes' : 'no');
-
-    if (!token) {
-      console.log('DISCONNECTED — no token');
-      client.disconnect();
-      return;
-    }
-
-    try {
-      const payload = await this.jwtService.verifyAsync(token, {
-        secret: 'votre_secret_super_securise_123456',  // same secret as JwtModule
-      });
-
-      console.log('JWT payload:', payload);
-
-      const user = await this.userRepository.findOne({
-        where: { id: payload.userId },
-      });
-
-      console.log('user found:', user ? user.username : 'none');
-
-      if (!user) {
-        console.log('DISCONNECTED — user not found');
-        client.disconnect();
-        return;
+      if (!token) {
+        return next(new Error('Unauthorized — no token'));
       }
 
-      client.data.user = {
-        userId: user.id,
-        username: user.username,
-        role: user.role,
-      };
+      try {
+        const payload = await this.jwtService.verifyAsync(token, {
+          secret: 'votre_secret_super_securise_123456',
+        });
 
-      console.log('connection accepted:', client.data.user);
+        const user = await this.userRepository.findOne({
+          where: { id: payload.userId },
+        });
 
-    } catch (e) {
-      console.log('DISCONNECTED — error:', UnauthorizedException);
-      client.disconnect();
-    }
+        if (!user) {
+          return next(new Error('Unauthorized — user not found'));
+        }
+
+        // store user on socket before any event fires
+        client.data.user = {
+          userId: user.id,
+          username: user.username,
+          role: user.role,
+        };
+
+        next(); // allow connection
+      } catch (e) {
+        return next(new Error('Unauthorized — invalid token'));
+      }
+    });
   }
 
-  handleDisconnect(client: Socket) {
-    // just log, don't call client.disconnect() here
-    // it causes an infinite loop in some versions
-    console.log('client disconnected:', client.id);
+  // now guaranteed that client.data.user is already set here
+  handleConnection(client: Socket) {
+  console.log('connected:', client.data.user?.username);
+
+  // notify everyone that this user is online
+  if (client.data.user) {
+    this.server.emit('userStatus', {
+      username: client.data.user.username,
+      role: client.data.user.role,
+      isOnline: true,
+    });
   }
+}
+
+ handleDisconnect(client: Socket) {
+  console.log('disconnected:', client.id);
+
+  // notify everyone that this user is offline
+  if (client.data.user) {
+    this.server.emit('userStatus', {
+      username: client.data.user.username,
+      role: client.data.user.role,
+      isOnline: false,
+    });
+  }
+}
 
   @SubscribeMessage('join')
   handleJoin(
@@ -95,9 +103,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const authUser = client.data.user;
 
-    if (!authUser) {
-      throw new WsException('Unauthorized');
-    }
+    if (!authUser) throw new WsException('Unauthorized');
 
     if (authUser.role !== 'admin' && payload.userId !== authUser.userId) {
       throw new WsException('Forbidden');
@@ -117,14 +123,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const authUser = client.data.user;
 
-    if (!authUser) {
-      throw new WsException('Unauthorized');
-    }
+    if (!authUser) throw new WsException('Unauthorized');
 
     const content = payload.content?.trim();
-    if (!content) {
-      throw new WsException('Message content is required');
-    }
+    if (!content) throw new WsException('Message content is required');
 
     if (authUser.role !== 'admin' && payload.userId !== authUser.userId) {
       throw new WsException('Forbidden');
@@ -134,9 +136,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const targetUser = await this.userRepository.findOne({
         where: { id: payload.userId },
       });
-      if (!targetUser) {
-        throw new WsException('User not found');
-      }
+      if (!targetUser) throw new WsException('User not found');
     }
 
     const threadUserId =
@@ -161,6 +161,61 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       at: message.createdAt.toISOString(),
     });
   }
+  // typing indicator
+@SubscribeMessage('typing')
+handleTyping(
+  @MessageBody() payload: { userId: number; isTyping: boolean },
+  @ConnectedSocket() client: Socket,
+) {
+  const authUser = client.data.user;
+  if (!authUser) throw new WsException('Unauthorized');
+
+  const room = this.getRoom(payload.userId);
+
+  // broadcast to everyone in room EXCEPT the sender
+  client.to(room).emit('typing', {
+    username: authUser.username,
+    isTyping: payload.isTyping,
+  });
+}
+
+// read receipts
+@SubscribeMessage('markRead')
+async handleMarkRead(
+  @MessageBody() payload: { userId: number },
+  @ConnectedSocket() client: Socket,
+) {
+  const authUser = client.data.user;
+  if (!authUser) throw new WsException('Unauthorized');
+
+  const room = this.getRoom(payload.userId);
+
+  // notify everyone in room that this user has read the messages
+  client.to(room).emit('messagesRead', {
+    byUser: authUser.username,
+    byRole: authUser.role,
+    at: new Date().toISOString(),
+  });
+}
+
+// emoji reaction
+@SubscribeMessage('react')
+async handleReact(
+  @MessageBody() payload: { userId: number; messageId: number; emoji: string },
+  @ConnectedSocket() client: Socket,
+) {
+  const authUser = client.data.user;
+  if (!authUser) throw new WsException('Unauthorized');
+
+  const room = this.getRoom(payload.userId);
+
+  // broadcast reaction to everyone in room
+  this.server.to(room).emit('reaction', {
+    messageId: payload.messageId,
+    emoji: payload.emoji,
+    fromUser: authUser.username,
+  });
+}
 
   private getRoom(userId: number) {
     return `chat:user:${userId}`;
@@ -168,13 +223,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private extractBearerToken(authorization?: string | string[]) {
     if (!authorization) return undefined;
-
-    const header = Array.isArray(authorization)
-      ? authorization[0]
-      : authorization;
-
+    const header = Array.isArray(authorization) ? authorization[0] : authorization;
     if (!header?.startsWith('Bearer ')) return undefined;
-
     return header.slice('Bearer '.length).trim();
   }
 }
